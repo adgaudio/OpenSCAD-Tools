@@ -3,7 +3,6 @@
 # This script lets you define and download external openscad dependencies
 # that your project may require.
 #
-#
 # - You can define a dependencies.txt file in the same directory as this
 #   bootstrap script, or you can pass in a filepath as $1
 # - This file downloads all dependencies to: "./external"
@@ -11,7 +10,7 @@
 # The dependencies.txt file might look like this:
 #
 #   adgaudio/shape_primitives.scad-->https://raw.githubusercontent.com/adgaudio/3dPrinter/master/lib/shape_primitives.scad
-#   openscad_maker.py-->https://raw.githubusercontent.com/adgaudio/3dPrinter/master/openscad_maker.py
+#   openscad_exporter-->https://raw.githubusercontent.com/adgaudio/OpenSCAD-Tools/master/openscad_exporter
 #
 # Then, your openscad code might include this library:
 #
@@ -25,11 +24,7 @@
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 cmdfail="echo -ne \e[0;41;97mFAIL: "
 if [ -z "$1" ] ; then
-  if [ -z "$DIR" ] ; then
-    dependencies_txt="./dependencies.txt"
-  else
-    dependencies_txt="$DIR/dependencies.txt"
-  fi
+  dependencies_txt="./dependencies.txt"
 else
   dependencies_txt="$1"
 fi
