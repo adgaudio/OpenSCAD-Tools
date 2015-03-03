@@ -1,5 +1,21 @@
 #!/usr/bin/env python
-"""Exports each openscad module/function that has '//make me' defined
+"""
+Export OpenSCAD modules simply and in parallel.  Convert specific modules
+in a .scad file to .stl and other OpenSCAD supported formats.
+
+You may explicitly pass specific modules you wish to export, or you can simply
+let this script search for "// make me" in your .scad file.
+
+For instance:
+
+$ cat > ./file.scad
+    module mycylinder() {  // make me
+      cylinder(r=10, h=1);
+    }
+
+$ ./openscad_exporter file.scad  # --> this generates mycylinder.stl
+
+
 """
 import argparse
 import atexit
@@ -18,10 +34,9 @@ REGEX = r'( *module *|.*\)|)([A-Za-z0-9_-]+)\((.*?)\) *(\{|;).*// *make me.*'
 CMD = "openscad -o {module}.{ftype} {tfp}"
 
 
-def cleanup(procs, tfp):
+def cleanup(proc, tfp):
     """Remove temp file created on exit"""
-    for proc in procs.values():
-        proc.wait()
+    proc.wait()
     check_call(['rm',  tfp])
 
 
@@ -58,7 +73,7 @@ def main(ns):
         print(tcmd)
         p = Popen(tcmd, shell=True)
         procs[tcmd] = p
-        atexit.register(cleanup, procs=procs, tfp=tfp)
+        atexit.register(cleanup, proc=p, tfp=tfp)
 
     if ns.block:
         for p in procs.values():
@@ -74,8 +89,13 @@ def main(ns):
 
 
 def arg_parser():
-    parser = argparse.ArgumentParser(
-        description='Export openscad modules simply and in parallel')
+    parser = argparse.ArgumentParser(description="""
+Export OpenSCAD modules simply and in parallel.  Convert specific modules
+in a .scad file to .stl and other OpenSCAD supported formats.
+
+You may explicitly pass specific modules you wish to export, or you can simply
+let this script search for "// make in your .scad file.
+""")
     parser.add_argument(
         'fp', type=abspath, help="please supply a <file.scad>")
     parser.add_argument(
