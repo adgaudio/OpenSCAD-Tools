@@ -6,11 +6,14 @@
 # - You can define a dependencies.txt file in the same directory as this
 #   bootstrap script, or you can pass in a filepath as $1
 # - This file downloads all dependencies to: "./external"
+# - Sets file attributes, if specified
 #
 # The dependencies.txt file might look like this:
 #
 #   adgaudio/shape_primitives.scad-->https://raw.githubusercontent.com/adgaudio/3dPrinter/master/lib/shape_primitives.scad
-#   openscad_exporter-->https://raw.githubusercontent.com/adgaudio/OpenSCAD-Tools/master/openscad_exporter
+#
+# Executable dependencies may also look like this:
+#   openscad_exporter-->+x-->https://raw.githubusercontent.com/adgaudio/OpenSCAD-Tools/master/openscad_exporter
 #
 # Then, your openscad code might include this library:
 #
@@ -35,8 +38,12 @@ set -u
 echo downloading dependencies
 while read line ; do
   [[ "$line" =~ ^\ *#.*$ ]] && echo skip $line && continue
-  fname="./external/${line%-->*}"
-  url="${line#*-->}"
+  fname="./external/${line%%-->*}"
+  url="${line##*-->}"
+  echo $fname $url
+  _middle="${line#*-->}"
+  file_attrs="${_middle%%-->*}"
+  if [ "$file_attrs" = "$url" ] ; then file_attrs="`expr 666 - $(umask)`" ; fi
 
   echo
   echo "GET $url"
@@ -47,6 +54,7 @@ while read line ; do
     $cmdfail
     $cmdwget
   }
+  chmod $file_attrs $fname
 done < "$dependencies_txt"
 echo successfully fetched dependencies
 
