@@ -19,7 +19,7 @@ $ ./openscad_exporter file.scad  # --> this generates mycylinder.stl
 """
 import argparse
 import atexit
-from os.path import abspath
+from os.path import abspath, dirname, relpath
 from os import getenv
 import re
 from subprocess import check_call, Popen
@@ -27,11 +27,12 @@ import tempfile
 
 
 TEMPLATE = u"""
-include <{fp}>;
+use <{fp}>;
+{other_include}
 {module}({args});
 """
 REGEX = r'( *module *|.*\)|)([A-Za-z0-9_-]+)\((.*?)\) *(\{|;).*// *make me.*'
-CMD = "openscad -o {module}.{ftype} {tfp}"
+CMD = "{envvars} openscad -o {module}.{ftype} {tfp}"
 
 
 def cleanup(proc, tfp):
@@ -57,6 +58,13 @@ def get_modules(fp):
     return modules
 
 
+def get_includes(fp):
+    """Find all lines like `include  <xyz>` or `use <xyz>`"""
+    pat = re.compile(r'^ *(include|use) *<(.*?)> *;')
+    with open(fp, 'r') as fin:
+        return [line for line in fin if re.match(pat, line)]
+
+
 def main(ns):
     procs = {}
     for module, args in (ns.modules or get_modules(ns.fp)):
@@ -64,12 +72,17 @@ def main(ns):
         _, tfp = tempfile.mkstemp(
             prefix='openscad_%s_' % module, suffix='.scad')
         with open(tfp, 'w') as tfd:
-            tfd.write(TEMPLATE.format(module=module, args=args, fp=ns.fp))
+            tfd.write(TEMPLATE.format(
+                module=module, args=args, fp=ns.fp,
+                other_include=''.join(get_includes(ns.fp))
+            ))
 
         # run openscad on temp file
-        tcmd = CMD.format(module=module, ftype=ns.ftype, tfp=tfp)
+        _path = 'OPENSCADPATH=%s' % dirname(abspath(ns.fp))
         if ns.openscadpath:
-            tcmd = "OPENSCADPATH=%s %s" % (ns.openscadpath, tcmd)
+            _path += ":%s" % relpath(ns.openscadpath, dirname(tfp))
+        tcmd = CMD.format(module=module, ftype=ns.ftype, tfp=tfp,
+                          envvars=_path)
         print(tcmd)
         p = Popen(tcmd, shell=True)
         procs[tcmd] = p
