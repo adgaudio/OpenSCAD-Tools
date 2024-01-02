@@ -32,7 +32,7 @@ use <{fp}>;
 {module}({args});
 """
 REGEX = r'( *module *|.*\)|)([A-Za-z0-9_-]+)\((.*?)\) *(\{|;).*// *make me.*'
-CMD = "{envvars} openscad -o {module}.{ftype} {tfp}"
+CMD = "{envvars} openscad -o {prefix}{module}{suffix}.{ftype} {tfp}"
 
 
 def cleanup(proc, tfp):
@@ -82,7 +82,7 @@ def main(ns):
         if ns.openscadpath:
             _path += ":%s" % relpath(ns.openscadpath, dirname(tfp))
         tcmd = CMD.format(module=module, ftype=ns.ftype, tfp=tfp,
-                          envvars=_path)
+                          envvars=_path, prefix=ns.prefix, suffix=ns.suffix)
         print(tcmd)
         p = Popen(tcmd, shell=True)
         procs[tcmd] = p
@@ -107,7 +107,7 @@ Export OpenSCAD modules simply and in parallel.  Convert specific modules
 in a .scad file to .stl and other OpenSCAD supported formats.
 
 You may explicitly pass specific modules you wish to export, or you can simply
-let this script search for "// make in your .scad file.
+let this script search for "// make me" in your .scad file.
 """)
     parser.add_argument(
         'fp', type=abspath, help="please supply a <file.scad>")
@@ -124,6 +124,12 @@ let this script search for "// make in your .scad file.
         '--block', action='store_true', help=(
             'Run in serial rather than in parallel.  '
             ' May take forever if you are compiling a lot of openscad modules'))
+    parser.add_argument(
+        '--prefix', default="",
+        help=('Output filename starts with this string'))
+    parser.add_argument(
+        '--suffix', default="",
+        help=('Output filename ends with this string'))
     return parser
 
 
